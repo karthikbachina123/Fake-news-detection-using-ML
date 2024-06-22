@@ -1,0 +1,311 @@
+#Just a simple model doesn't work well and dataset and code needs to be updated.
+
+
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report
+import re
+import string
+
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+nltk.download('vader_lexicon')
+
+sia = SentimentIntensityAnalyzer()
+
+data_fake = pd.read_csv('Fake.csv')
+data_true = pd.read_csv('True.csv')
+
+data_fake.head()
+
+data_true.head()
+
+data_fake["class"] = 0
+data_true['class'] = 1
+
+data_fake.shape, data_true.shape
+
+data_fake_manual_testing = data_fake.tail(10)
+for i in range(23408 , 23470, -1):
+    data_fake.drop([i] , axis = 0, inplace = True)
+
+data_true_manual_testing = data_true.tail(10)
+for i in range(21416, 21406 , -1):
+    data_true.drop([i] , axis = 0, inplace = True)
+
+data_fake.shape, data_true.shape
+
+data_fake_manual_testing['class'] = 0
+data_true_manual_testing['class'] = 1
+
+data_fake_manual_testing.head(10)
+
+data_true_manual_testing.head(10)
+
+data_merge = pd.concat([data_fake, data_true] , axis = 0)
+data_merge.head(10)
+
+data_merge.columns
+
+data = data_merge.drop(['title' , 'subject' , 'date'] , axis = 1)
+
+data.isnull().sum()
+
+data = data.sample(frac = 1)
+
+data.head()
+
+data.reset_index(inplace = True)
+data.drop(['index'] , axis = 1, inplace = True)
+
+data.columns
+
+data.head()
+
+def wordopt(text):
+    text = text.lower()
+    text = re.sub('\[.*?\]', '', text)ut
+    text = re.sub("\\W" , " " , text)
+    text = re.sub('https?://\S+|www\.\S+' , '' , text)
+    text = re.sub('<.*?>+' , '' , text)
+    text = re.sub('[%s]' % re.escape(string.punctuation) , '' , text)
+    text = re.sub('\n', '' , text)
+    text = re.sub('\w*\d\w*' , '' , text)
+    return text
+
+data['text'] = data['text'].apply(wordopt)
+
+x = data['text']
+y = data['class']
+
+x_train, x_test , y_train , y_test = train_test_split(x , y , test_size = 0.25)
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+vectorization = TfidfVectorizer()
+xv_train = vectorization.fit_transform(x_train)
+xv_test = vectorization.transform(x_test)
+
+from sklearn.linear_model import LogisticRegression
+
+LR = LogisticRegression()
+LR.fit(xv_train , y_train)
+
+
+pred_lr = LR.predict(xv_test)
+
+
+LR.score(xv_test , y_test)
+
+print(classification_report(y_test , pred_lr))
+
+from sklearn.tree import DecisionTreeClassifier
+
+DT = DecisionTreeClassifier()
+DT.fit(xv_train , y_train) 
+
+pred_dt = DT.predict(xv_test)
+
+DT.score(xv_test, y_test)
+
+print(classification_report (y_test, pred_dt))
+
+from sklearn.ensemble import GradientBoostingClassifier
+
+GB = GradientBoostingClassifier(random_state = 0)
+GB.fit(xv_train , y_train)
+
+pred_gb = GB.predict(xv_test)
+
+GB.score(xv_test , y_test)
+
+
+print(classification_report(y_test , pred_gb))
+
+from sklearn.ensemble import RandomForestClassifier
+
+RF = RandomForestClassifier(random_state = 0)
+RF.fit(xv_train , y_train)
+
+
+pred_rf = RF.predict(xv_test)
+
+RF.score(xv_test , y_test)
+
+print(classification_report(y_test , pred_rf))
+
+fake_news_keywords = [
+    "shocking", "outrageous", "unbelievable", "conspiracy", "hoax", "scandal", "cover-up",
+    "mind-blowing", "explosive", "exposed", "revealed", "secret", "hidden", "censored",
+    "banned", "suppressed", "stunning", "bizarre", "weird", "controversial", "taboo",
+    "scary", "frightening", "terrifying", "dangerous", "deadly", "fatal", "apocalyptic",
+    "end of the world", "warning", "crisis", "emergency", "urgent", "catastrophe",
+    "miracle", "unprecedented", "breakthrough", "exclusive", "must-read", "clickbait",
+    "fake", "fraud", "phony", "bogus", "not true", "debunked", "misleading", "fabricated",
+    "manipulated", "unverified", "unreliable", "dubious", "questionable", "distrust",
+    "skepticism", "fiction", "fantasy", "rumor", "speculation", "anomaly", "oddity",
+    "suspicious", "inexplicable", "strange", "peculiar", "weird", "cover-up", "coverup",
+    "corruption", "concealed", "hidden agenda", "sinister", "sinister plot", "sinister agenda",
+    "shady", "shadowy", "dark", "mystery", "mysterious", "top secret", "blacklisted",
+    "whistleblower", "concealed truth", "forbidden knowledge", "shocking discovery",
+    "top story", "world-changing", "doomsday", "nibiru", "alien", "UFO", "cover-up exposed",
+    "elite", "hidden truth", "miracle cure", "instant cure", "miracle drug", "instant results",
+    "uncovered truth", "revealing", "mind control", "classified", "breakthrough discovery",
+    "top secret documents", "unprecedented discovery", "banned information", "inside scoop",
+    "shocking allegations", "smoking gun", "secret plan", "exclusive report",
+    "screaming", "explosive", "earth-shattering", "jaw-dropping", "breathtaking", "heart-stopping",
+    "unveiled", "bombshell", "mind-boggling", "jaw-dropping", "earthquake", "massive", "monster",
+    "shook", "panic", "panic-inducing", "hysteria", "panic mode", "mass hysteria", "terrified",
+    "terrified witnesses", "horrified", "horrified onlookers", "furious", "furious response", "outraged",
+    "outraged viewers", "outrageous claims", "outrageous statement", "outrageous behavior", "outrageous conduct",
+    "rampage", "total chaos", "total disaster", "total failure", "complete disaster", "complete failure",
+    "crazy", "insane", "insanity", "lunacy", "wild", "wild claims", "wild accusations", "wild allegations",
+    "crazy conspiracy", "crazy theory", "lunatic", "lunatic fringe", "lunatic idea", "lunatic theory",
+    "wildly inaccurate", "wildly exaggerated", "wildly false", "wildly misleading", "wildly sensational", "wildly unrealistic",
+    "sensational claims", "sensational headlines", "sensational stories", "sensationalistic", "outrageous lies",
+    "outrageous falsehoods", "outrageous exaggeration", "outrageous distortions", "outrageous misinformation", "outrageous deception",
+    "outrageous fabrications", "outrageous hoaxes", "outrageous scams", "unsubstantiated rumors", "unsubstantiated claims",
+    "unsubstantiated allegations", "unsubstantiated accusations", "unsubstantiated conspiracy", "unsubstantiated theory",
+    "unsubstantiated speculation", "baseless rumors", "baseless claims", "baseless allegations", "baseless accusations",
+    "baseless conspiracy", "baseless theory", "baseless speculation", "baseless misinformation", "baseless deception",
+    "baseless fabrications", "baseless hoaxes", "baseless scams", "absurd", "absurd claims", "absurd allegations",
+    "absurd accusations", "absurd conspiracy", "absurd theory", "absurd speculation", "absurd rumors", "absurd stories",
+    "absurd headlines", "absurd lies", "absurd falsehoods", "absurd exaggeration", "absurd distortions", "absurd misinformation",
+    "absurd deception", "absurd fabrications", "absurd hoaxes", "absurd scams", "total nonsense", "total garbage",
+    "complete nonsense", "complete garbage", "utter nonsense", "utter garbage", "pure nonsense", "pure garbage",
+    "nonsense claims", "nonsense allegations", "nonsense accusations", "nonsense conspiracy", "nonsense theory",
+    "nonsense speculation", "nonsense rumors", "nonsense stories", "nonsense headlines", "nonsense lies",
+    "nonsense falsehoods", "nonsense exaggeration", "nonsense distortions", "nonsense misinformation", "nonsense deception",
+    "nonsense fabrications", "nonsense hoaxes", "nonsense scams", "ridiculous", "ridiculous claims", "ridiculous allegations",
+    "ridiculous accusations", "ridiculous conspiracy", "ridiculous theory", "ridiculous speculation", "ridiculous rumors",
+    "ridiculous stories", "ridiculous headlines", "ridiculous lies", "ridiculous falsehoods", "ridiculous exaggeration",
+    "ridiculous distortions", "ridiculous misinformation", "ridiculous deception", "ridiculous fabrications", "ridiculous hoaxes",
+    "ridiculous scams", "laughable", "laughable claims", "laughable allegations", "laughable accusations", "laughable conspiracy",
+    "laughable theory", "laughable speculation", "laughable rumors", "laughable stories", "laughable headlines", "laughable lies",
+    "laughable falsehoods", "laughable exaggeration", "laughable distortions", "laughable misinformation", "laughable deception",
+    "laughable fabrications", "laughable hoaxes", "laughable scams", "ridiculously false", "ridiculously misleading",
+    "completely false", "completely misleading", "utterly false", "utterly misleading", "purely false", "purely misleading",
+    "entirely false", "entirely misleading", "totally false", "totally misleading", "wholly false", "wholly misleading",
+    "absolutely false", "absolutely misleading", "grossly false", "grossly misleading", "blatantly false", "blatantly misleading",
+    "patently false", "patently misleading", "outright false", "outright misleading", "outrageously false", "outrageously misleading",
+    "wildly false", "wildly misleading", "completely made up", "utterly made up", "purely made up", "entirely made up",
+    "totally made up", "wholly made up", "absolutely made up", "grossly made up", "blatantly made up", "patently made up",
+    "outright made up", "outrageously made up", "wildly made up", "unfounded claims", "unfounded allegations", "unfounded accusations",
+    "unfounded conspiracy", "unfounded theory", "unfounded speculation", "unfounded rumors", "unfounded stories", "unfounded headlines",
+    "unfounded lies", "unfounded falsehoods", "unfounded exaggeration", "unfounded distortions", "unfounded misinformation",
+    "unfounded deception", "unfounded fabrications", "unfounded hoaxes", "unfounded scams", "zero evidence", "no evidence",
+    "no proof", "lacks evidence", "unsupported claims", "unsupported allegations", "unsupported accusations",
+    "unsupported conspiracy", "unsupported theory", "unsupported speculation", "unsupported rumors", "unsupported stories",
+    "unsupported headlines", "unsupported lies", "unsupported falsehoods", "unsupported exaggeration", "unsupported distortions",
+    "unsupported misinformation", "unsupported deception", "unsupported fabrications", "unsupported hoaxes", "unsupported scams",
+    "baseless claims", "baseless allegations", "baseless accusations", "baseless conspiracy", "baseless theory", "baseless speculation",
+    "baseless rumors", "baseless stories", "baseless headlines", "baseless lies", "baseless falsehoods", "baseless exaggeration",
+    "baseless distortions", "baseless misinformation", "baseless deception", "baseless fabrications", "baseless hoaxes", "baseless scams",
+    "utterly baseless", "completely baseless", "wholly baseless", "absolutely baseless", "grossly baseless", "blatantly baseless",
+    "patently baseless", "outright baseless", "outrageously baseless", "wildly baseless", "entirely baseless", "totally baseless",
+    "absurdly false", "absurdly misleading", "absurdly exaggerated", "absurdly distorted", "absurdly deceptive", "absurdly fabricated",
+    "absurdly unfounded", "absurdly baseless", "absurdly nonsensical", "absurdly ridiculous", "absurdly laughable", "absurdly ludicrous",
+    "absurdly implausible", "absurdly unbelievable", "absurdly impossible", "absurdly far-fetched", "absurdly preposterous",
+    "absurdly irrational", "absurdly illogical", "absurdly irrational", "absurdly insane", "absurdly delusional",
+    "absurdly paranoid", "absurdly outrageous", "absurdly outlandish", "absurdly fictitious", "absurdly fictional", "absurdly mythical",
+    "absurdly mystical", "absurdly supernatural", "absurdly magical", "absurdly miraculous", "absurdly fantastic", "absurdly miraculous",
+    "absurdly impossible", "absurdly unrealistic", "absurdly extravagant", "absurdly grandiose", "absurdly spectacular", "absurdly phenomenal",
+    "absurdly extraordinary", "absurdly unprecedented", "absurdly unparalleled", "absurdly legendary", "absurdly mythical", "absurdly epic",
+    "absurdly colossal", "absurdly monumental", "absurdly incredible", "absurdly remarkable", "absurdly astonishing", "absurdly mind-blowing",
+    "absurdly earth-shattering", "absurdly jaw-dropping", "absurdly breathtaking", "absurdly heart-stopping", "absurdly awe-inspiring",
+    "absurdly unbelievable", "absurdly unbelievable story", "absurdly unbelievable claim", "absurdly unbelievable allegation",
+    "absurdly unbelievable conspiracy", "absurdly unbelievable theory", "absurdly unbelievable speculation", "absurdly unbelievable rumors",
+    "absurdly unbelievable stories", "absurdly unbelievable headlines", "absurdly unbelievable lies", "absurdly unbelievable falsehoods",
+    "absurdly unbelievable exaggeration", "absurdly unbelievable distortions", "absurdly unbelievable misinformation", "absurdly unbelievable deception",
+    "absurdly unbelievable fabrications", "absurdly unbelievable hoaxes", "absurdly unbelievable scams", "absurdly unbelievable nonsense",
+    "absurdly unbelievable garbage", "absurdly unbelievable ridiculous", "absurdly unbelievable laughable", "absurdly unbelievable ludicrous",
+    "absurdly unbelievable implausible", "absurdly unbelievable impossible", "absurdly unbelievable far-fetched", "absurdly unbelievable preposterous",
+    "absurdly unbelievable irrational", "absurdly unbelievable illogical", "absurdly unbelievable irrational", "absurdly unbelievable insane",
+    "absurdly unbelievable delusional", "absurdly unbelievable paranoid", "absurdly unbelievable outrageous", "absurdly unbelievable outlandish",
+    "absurdly unbelievable fictitious", "absurdly unbelievable fictional", "absurdly unbelievable mythical", "absurdly unbelievable mystical",
+    "absurdly unbelievable supernatural", "absurdly unbelievable magical", "absurdly unbelievable miraculous", "absurdly unbelievable fantastic",
+    "absurdly unbelievable miraculous", "absurdly unbelievable impossible", "absurdly unbelievable unrealistic", "absurdly unbelievable extravagant",
+    "absurdly unbelievable grandiose", "absurdly unbelievable spectacular", "absurdly unbelievable phenomenal", "absurdly unbelievable extraordinary",
+    "absurdly unbelievable unprecedented", "absurdly unbelievable unparalleled", "absurdly unbelievable legendary", "absurdly unbelievable mythical",
+    "absurdly unbelievable epic", "absurdly unbelievable colossal", "absurdly unbelievable monumental", "absurdly unbelievable incredible",
+    "absurdly unbelievable remarkable", "absurdly unbelievable astonishing", "absurdly unbelievable mind-blowing", "absurdly unbelievable earth-shattering",
+    "absurdly unbelievable jaw-dropping", "absurdly unbelievable breathtaking", "absurdly unbelievable heart-stopping", "absurdly unbelievable awe-inspiring",
+    "absurdly unbelievable unbelievable", "absurdly unbelievable shocking", "absurdly unbelievable outrageous", "absurdly unbelievable amazing",
+    "absurdly unbelievable astonishing", "absurdly unbelievable astounding", "absurdly unbelievable remarkable", "absurdly unbelievable fantastic",
+    "absurdly unbelievable mind-blowing", "absurdly unbelievable incredible", "absurdly unbelievable sensational", "absurdly unbelievable incredible",
+    "absurdly unbelievable spectacular", "absurdly unbelievable remarkable", "absurdly unbelievable astonishing", "absurdly unbelievable phenomenal",
+    "absurdly unbelievable extraordinary", "absurdly unbelievable unprecedented", "absurdly unbelievable unparalleled", "absurdly unbelievable legendary",
+    "absurdly unbelievable mythical", "absurdly unbelievable epic", "absurdly unbelievable colossal", "absurdly unbelievable monumental",
+    "absurdly unbelievable fantastic", "absurdly unbelievable miraculous", "absurdly unbelievable impossible", "absurdly unbelievable unrealistic",
+    "absurdly unbelievable extravagant", "absurdly unbelievable grandiose", "absurdly unbelievable spectacular", "absurdly unbelievable phenomenal",
+    "absurdly unbelievable extraordinary", "absurdly unbelievable unprecedented", "absurdly unbelievable unparalleled", "absurdly unbelievable legendary",
+    "absurdly unbelievable mythical", "absurdly unbelievable epic", "absurdly unbelievable colossal", "absurdly unbelievable monumental",
+    "absurdly unbelievable incredible", "absurdly unbelievable remarkable", "absurdly unbelievable astonishing", "absurdly unbelievable mind-blowing",
+    "absurdly unbelievable earth-shattering", "absurdly unbelievable jaw-dropping", "absurdly unbelievable breathtaking", "absurdly unbelievable heart-stopping",
+    "absurdly unbelievable awe-inspiring", "absurdly unbelievable shocking", "absurdly unbelievable outrageous", "absurdly unbelievable amazing",
+    "absurdly unbelievable astonishing", "absurdly unbelievable astounding", "absurdly unbelievable remarkable", "absurdly unbelievable fantastic",
+    "absurdly unbelievable mind-blowing", "absurdly unbelievable incredible", "absurdly unbelievable sensational"
+]
+
+
+def analyze_bias(text):
+    # Initialize bias score
+    bias_score = 0
+    
+    # Check for the presence of bias-related keywords
+    for keyword in fake_news_keywords:
+        if keyword in text.lower():
+            bias_score += 1
+    
+    # Analyze sentiment using VADER
+    sentiment_scores = sia.polarity_scores(text)
+    
+    # Adjust bias score based on sentiment
+    if sentiment_scores['compound'] >= 0.1:
+        bias_score -= 1
+    elif sentiment_scores['compound'] <= -0.1:
+        bias_score += 1
+    
+    # Determine bias label based on the adjusted score
+    if bias_score >= 2:
+        return "Strongly Biased"
+    elif bias_score == 1:
+        return "Biased"
+    elif bias_score == 0:
+        return "Neutral"
+    elif bias_score == -1:
+        return "Unbiased"
+    else:
+        return "Strongly Unbiased"
+
+def manual_testing(news):
+    testing_news = {"text": [news]}
+    new_def_test = pd.DataFrame(testing_news)
+    new_def_test["text"] = new_def_test["text"].apply(wordopt)
+    new_x_test = new_def_test["text"]
+    new_xv_test = vectorization.transform(new_x_test)
+    pred_LR = LR.predict(new_xv_test)
+    pred_DT = DT.predict(new_xv_test)
+    pred_GB = GB.predict(new_xv_test)
+    pred_RF = RF.predict(new_xv_test)
+
+    sentiment_scores = sia.polarity_scores(news)
+    sentiment = ""
+    if sentiment_scores['compound'] >= 0.05:
+        sentiment = "Positive"
+    elif sentiment_scores['compound'] <= -0.05:
+        sentiment = "Negative"
+    else:
+        sentiment = "Neutral"
+    
+    bias = analyze_bias(news)  # Analyze bias in the news
+    
+    return print("\nSentiment: {}\nBias: {}\nLR Prediction: {} \nDT Prediction: {} \nGB Prediction: {} \nRF Prediction: {}".format(sentiment, bias, output_label(pred_LR[0]), output_label(pred_DT[0]), output_label(pred_GB[0]), output_label(pred_RF[0])))
+
+news = str(input())
+manual_testing(news)
